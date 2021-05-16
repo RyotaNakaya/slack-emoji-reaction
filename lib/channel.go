@@ -1,46 +1,45 @@
 package lib
 
 import (
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
-	"net/http"
 	"os"
+
+	"github.com/slack-go/slack"
 )
 
 func GetConversations() {
-	var next string
-	client := new(http.Client)
-	// 再帰的にページングしてリクエストを送る
-	for {
-		req, _ := http.NewRequest("GET", buildConversationsUrl(next), nil)
-		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", SLACK_TOKEN))
+	api := slack.New(SLACK_TOKEN)
+	param := slack.GetConversationsParameters{
+		ExcludeArchived: false,
+		Limit:           200,
+		Types:           []string{"public_channel"},
+	}
 
-		res, _ := client.Do(req)
-		body, _ := ioutil.ReadAll(res.Body)
-		var cr ChannelResponse
-		if err := json.Unmarshal(body, &cr); err != nil {
+	// next cursor が返ってこなくなるまで再帰的にコール
+	for {
+		res, next, err := api.GetConversations(&param)
+		if err != nil {
 			log.Fatal(err)
 		}
-		outputConversationsData(cr.Channels)
-		next = cr.Metadata["next_cursor"]
+
+		// チャンネルIDとチャンネル名を書き出す
+		m := make(map[string]string, len(res))
+		for _, v := range res {
+			m[v.ID] = v.Name
+		}
+		outputChannelInfoToFile(m)
+
 		// 次のページがなければ終了
 		if next == "" {
 			break
+		} else {
+			param.Cursor = next
 		}
 	}
 }
 
-func buildConversationsUrl(cursor string) string {
-	return fmt.Sprintf("%s//conversations.list?exclude_members=true&exclude_archived=true&limit=200&cursor=%s", BASE_URL, cursor)
-}
-
-func outputConversationsData(c []ChannelResponseDetail) {
-	outputToFile(c)
-}
-
-func outputToFile(c []ChannelResponseDetail) {
+func outputChannelInfoToFile(c map[string]string) {
 	var filename string = "tmp/channels.txt"
 	file, err := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
 	defer file.Close()
@@ -48,20 +47,10 @@ func outputToFile(c []ChannelResponseDetail) {
 		log.Fatal(err)
 	}
 
-	for _, v := range c {
-		_, err := file.WriteString(fmt.Sprintf("%s\n", v.Name))
+	for k, v := range c {
+		_, err := file.WriteString(fmt.Sprintf("%s: %s\n", k, v))
 		if err != nil {
 			log.Fatal(err)
 		}
 	}
-}
-
-type ChannelResponse struct {
-	Channels []ChannelResponseDetail `json:"channels"`
-	Metadata map[string]string       `json:"response_metadata"`
-}
-
-type ChannelResponseDetail struct {
-	Name string `json:"name"`
-	Id   string `json:"id"`
 }
