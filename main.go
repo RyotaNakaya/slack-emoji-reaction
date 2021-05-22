@@ -21,13 +21,14 @@ var (
 )
 
 func main() {
-	fmt.Println("hello, world")
+	logger.Info("start")
+	logger.Infof("startTime: %d, endTime: %d", startTime, endTime)
 	// lib.GetConversations()
 	// lib.GetEmoji()
 
 	aggregateReaction("CF724P8RE", endTime, startTime)
 
-	fmt.Println("success!")
+	logger.Info("success!")
 }
 
 func init() {
@@ -98,16 +99,16 @@ func aggregateReaction(ChannelID string, latest int, oldest int) {
 
 	var filename string = "tmp/msg.txt"
 	file, err := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
-	defer file.Close()
 	if err != nil {
-		log.Fatal(err)
+		logger.Fatalf("error: %+v", err)
 	}
+	defer file.Close()
 
 	for k, v := range reactionDict {
 		row := fmt.Sprintf("%s: %d\n", k, v)
 		_, err := file.WriteString(row)
 		if err != nil {
-			log.Fatal(err)
+			logger.Fatalf("error: %+v", err)
 		}
 	}
 }

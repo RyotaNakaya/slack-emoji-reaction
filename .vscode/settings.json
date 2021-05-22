@@ -1,0 +1,10 @@
+{
+  "go.formatFlags": ["-w"],
+  "go.lintTool": "golangci-lint",
+  "go.lintFlags": ["--fast"],
+  "go.buildOnSave": "package",
+  "go.testOnSave": false,
+  "go.gocodeAutoBuild": false,
+  "go.installDependenciesWhenBuilding": false,
+  "go.useLanguageServer": true
+}

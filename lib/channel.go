@@ -28,9 +28,7 @@ func FetchChannelMessages(ChannelID string, latest int, oldest int) ([]slack.Mes
 			return nil, fmt.Errorf("failed to GetConversationHistory: %w", err)
 		}
 
-		for _, v := range r.Messages {
-			res = append(res, v)
-		}
+		res = append(res, r.Messages...)
 
 		// 次のページがなければ終了
 		next := r.ResponseMetaData.NextCursor
@@ -67,9 +65,7 @@ func FetchChannelThreadMessages(ChannelID string, timestamps []string, latest in
 				return nil, fmt.Errorf("failed to GetConversationReplies: %w", err)
 			}
 
-			for _, v := range r {
-				res = append(res, v)
-			}
+			res = append(res, r...)
 
 			// 次のページがなければ終了
 			if next == "" {

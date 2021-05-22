@@ -17,10 +17,10 @@ func GetEmoji() {
 
 	var filename string = "tmp/emoji.txt"
 	file, err := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
-	defer file.Close()
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer file.Close()
 
 	for k := range res {
 		_, err := file.WriteString(fmt.Sprintf("%s\n", k))
