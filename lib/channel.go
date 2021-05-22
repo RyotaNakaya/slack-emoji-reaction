@@ -9,10 +9,10 @@ import (
 	"github.com/slack-go/slack"
 )
 
-func GetChannelHistory(ids []string, latest int, oldest int) {
+func GetChannelHistory(ChannelID string, latest int, oldest int) []slack.Message {
 	api := slack.New(SLACK_USER_TOKEN)
 	param := slack.GetConversationHistoryParameters{
-		ChannelID: ids[0],
+		ChannelID: ChannelID,
 		Cursor:    "",
 		Inclusive: false,
 		Latest:    strconv.Itoa(int(latest)),
@@ -20,48 +20,29 @@ func GetChannelHistory(ids []string, latest int, oldest int) {
 		Oldest:    strconv.Itoa(int(oldest)),
 	}
 
+	res := []slack.Message{}
+
 	// next cursor が返ってこなくなるまで再帰的にコール
 	for {
-		res, err := api.GetConversationHistory(&param)
+		r, err := api.GetConversationHistory(&param)
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		output := make([]map[string]string, 0, len(res.Messages))
-		for _, message := range res.Messages {
-			m := make(map[string]string)
-			m["text"] = message.Msg.Text
-			m["time"] = message.Msg.Timestamp
-			output = append(output, m)
-		}
-
-		var filename string = "tmp/msg.txt"
-		file, err := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
-		defer file.Close()
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		for _, v := range output {
-			s := ""
-			for k, v := range v {
-				s += fmt.Sprintf("%s: %s,", k, v)
-			}
-			s += "\n"
-			_, err := file.WriteString(s)
-			if err != nil {
-				log.Fatal(err)
-			}
+		for _, v := range r.Messages {
+			res = append(res, v)
 		}
 
 		// 次のページがなければ終了
-		next := res.ResponseMetaData.NextCursor
+		next := r.ResponseMetaData.NextCursor
 		if next == "" {
 			break
 		} else {
 			param.Cursor = next
 		}
 	}
+
+	return res
 }
 
 func GetConversations() {
