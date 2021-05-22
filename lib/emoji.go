@@ -9,7 +9,7 @@ import (
 )
 
 func GetEmoji() {
-	api := slack.New(SLACK_TOKEN)
+	api := slack.New(SLACK_BOT_TOKEN)
 	res, err := api.GetEmoji()
 	if err != nil {
 		log.Fatal(err)
