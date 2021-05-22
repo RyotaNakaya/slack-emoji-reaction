@@ -10,7 +10,7 @@ import (
 )
 
 // 指定されたチャンネル、期間のメッセージ一覧を返す
-func FetchChannelMessages(ChannelID string, latest int, oldest int) []slack.Message {
+func FetchChannelMessages(ChannelID string, latest int, oldest int) ([]slack.Message, error) {
 	api := slack.New(SLACK_USER_TOKEN)
 	param := slack.GetConversationHistoryParameters{
 		ChannelID: ChannelID,
@@ -27,7 +27,7 @@ func FetchChannelMessages(ChannelID string, latest int, oldest int) []slack.Mess
 	for {
 		r, err := api.GetConversationHistory(&param)
 		if err != nil {
-			log.Fatal(err)
+			return nil, fmt.Errorf("failed to GetConversationHistory: %w", err)
 		}
 
 		for _, v := range r.Messages {
@@ -43,11 +43,11 @@ func FetchChannelMessages(ChannelID string, latest int, oldest int) []slack.Mess
 		}
 	}
 
-	return res
+	return res, nil
 }
 
 // 指定されたチャンネルスレッド、期間のメッセージ一覧を返す
-func FetchChannelThreadMessages(ChannelID string, timestamps []string, latest int, oldest int) []slack.Message {
+func FetchChannelThreadMessages(ChannelID string, timestamps []string, latest int, oldest int) ([]slack.Message, error) {
 	api := slack.New(SLACK_USER_TOKEN)
 	res := []slack.Message{}
 
@@ -66,7 +66,7 @@ func FetchChannelThreadMessages(ChannelID string, timestamps []string, latest in
 		for {
 			r, _, next, err := api.GetConversationReplies(&param)
 			if err != nil {
-				log.Fatal(err)
+				return nil, fmt.Errorf("failed to GetConversationReplies: %w", err)
 			}
 
 			for _, v := range r {
@@ -82,7 +82,7 @@ func FetchChannelThreadMessages(ChannelID string, timestamps []string, latest in
 		}
 	}
 
-	return res
+	return res, nil
 }
 
 func GetConversations() {

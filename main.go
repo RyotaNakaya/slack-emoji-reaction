@@ -8,7 +8,10 @@ import (
 
 	"github.com/RyotaNakaya/slack-emoji-reaction/lib"
 	"github.com/joho/godotenv"
+	"go.uber.org/zap"
 )
+
+var logger *zap.SugaredLogger
 
 func main() {
 	fmt.Println("hello, world")
@@ -20,6 +23,8 @@ func main() {
 	s := time.Date(2021, time.April, 01, 00, 00, 00, 0, time.UTC).Unix()
 	e := time.Date(2021, time.May, 01, 00, 00, 00, 0, time.UTC).Unix()
 	aggregateReaction("CF724P8RE", int(e), int(s))
+
+	fmt.Println("success!")
 }
 
 func init() {
@@ -28,6 +33,12 @@ func init() {
 	}
 	lib.SLACK_BOT_TOKEN = os.Getenv("SLACK_BOT_TOKEN")
 	lib.SLACK_USER_TOKEN = os.Getenv("SLACK_USER_TOKEN")
+
+	l, err := zap.NewDevelopment()
+	if err != nil {
+		panic(fmt.Sprintf("failed to create logger: %v", err))
+	}
+	logger = l.Sugar()
 }
 
 func aggregateReaction(ChannelID string, latest int, oldest int) {
@@ -36,8 +47,11 @@ func aggregateReaction(ChannelID string, latest int, oldest int) {
 	// スレッドタイムスタンプ
 	var ts []string
 
-	messages := lib.FetchChannelMessages("CF724P8RE", latest, oldest)
-
+	// メッセージを取得する
+	messages, err := lib.FetchChannelMessages(ChannelID, latest, oldest)
+	if err != nil {
+		logger.Fatalf("error: %+v", err)
+	}
 	// reaction 集計
 	for _, message := range messages {
 		for _, v := range message.Reactions {
@@ -55,7 +69,10 @@ func aggregateReaction(ChannelID string, latest int, oldest int) {
 	}
 
 	// スレッドを取得する
-	messages = lib.FetchChannelThreadMessages("CF724P8RE", ts, latest, oldest)
+	messages, err = lib.FetchChannelThreadMessages("CF724P8RE", ts, latest, oldest)
+	if err != nil {
+		logger.Fatalf("error: %+v", err)
+	}
 	// reaction 集計
 	for _, message := range messages {
 		for _, v := range message.Reactions {
