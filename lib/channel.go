@@ -46,6 +46,45 @@ func FetchChannelMessages(ChannelID string, latest int, oldest int) []slack.Mess
 	return res
 }
 
+// 指定されたチャンネルスレッド、期間のメッセージ一覧を返す
+func FetchChannelThreadMessages(ChannelID string, timestamps []string, latest int, oldest int) []slack.Message {
+	api := slack.New(SLACK_USER_TOKEN)
+	res := []slack.Message{}
+
+	for _, ts := range timestamps {
+		param := slack.GetConversationRepliesParameters{
+			ChannelID: ChannelID,
+			Timestamp: ts,
+			Cursor:    "",
+			Inclusive: false,
+			Latest:    strconv.Itoa(int(latest)),
+			Limit:     200,
+			Oldest:    strconv.Itoa(int(oldest)),
+		}
+
+		// next cursor が返ってこなくなるまで再帰的にコール
+		for {
+			r, _, next, err := api.GetConversationReplies(&param)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			for _, v := range r {
+				res = append(res, v)
+			}
+
+			// 次のページがなければ終了
+			if next == "" {
+				break
+			} else {
+				param.Cursor = next
+			}
+		}
+	}
+
+	return res
+}
+
 func GetConversations() {
 	api := slack.New(SLACK_BOT_TOKEN)
 	param := slack.GetConversationsParameters{

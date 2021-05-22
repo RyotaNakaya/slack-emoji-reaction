@@ -34,7 +34,7 @@ func aggregateReaction(ChannelID string, latest int, oldest int) {
 	// リアクション
 	reactionDict := map[string]int{}
 	// スレッドタイムスタンプ
-	// var ts []string
+	var ts []string
 
 	messages := lib.FetchChannelMessages("CF724P8RE", latest, oldest)
 
@@ -48,10 +48,23 @@ func aggregateReaction(ChannelID string, latest int, oldest int) {
 			}
 		}
 
-		// スレッドタイムスタンプがある場合はそれを溜めておく
-		// if t := message.Msg.ThreadTimestamp; t != "" {
-		// 	ts = append(ts, t)
-		// }
+		// ThreadTimestamp がある場合スレッド取得で使うので溜めておく
+		if t := message.Msg.ThreadTimestamp; t != "" {
+			ts = append(ts, t)
+		}
+	}
+
+	// スレッドを取得する
+	messages = lib.FetchChannelThreadMessages("CF724P8RE", ts, latest, oldest)
+	// reaction 集計
+	for _, message := range messages {
+		for _, v := range message.Reactions {
+			if val, ok := reactionDict[v.Name]; ok {
+				reactionDict[v.Name] = val + v.Count
+			} else {
+				reactionDict[v.Name] = v.Count
+			}
+		}
 	}
 
 	var filename string = "tmp/msg.txt"
