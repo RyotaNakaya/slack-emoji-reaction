@@ -36,7 +36,7 @@ func aggregateReaction(ChannelID string, latest int, oldest int) {
 	// スレッドタイムスタンプ
 	// var ts []string
 
-	messages := lib.GetChannelHistory("CF724P8RE", latest, oldest)
+	messages := lib.FetchChannelMessages("CF724P8RE", latest, oldest)
 
 	// reaction 集計
 	for _, message := range messages {

@@ -9,7 +9,8 @@ import (
 	"github.com/slack-go/slack"
 )
 
-func GetChannelHistory(ChannelID string, latest int, oldest int) []slack.Message {
+// 指定されたチャンネル、期間のメッセージ一覧を返す
+func FetchChannelMessages(ChannelID string, latest int, oldest int) []slack.Message {
 	api := slack.New(SLACK_USER_TOKEN)
 	param := slack.GetConversationHistoryParameters{
 		ChannelID: ChannelID,
