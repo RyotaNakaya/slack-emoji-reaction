@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -11,18 +12,20 @@ import (
 	"go.uber.org/zap"
 )
 
-var logger *zap.SugaredLogger
+var (
+	logger    *zap.SugaredLogger
+	startTime = *flag.Int("startTime", int(time.Date(2021, 01, 01, 00, 00, 00, 0, time.UTC).Unix()),
+		"start unixtime of aggregate")
+	endTime = *flag.Int("endTime", int(time.Date(2021, 02, 01, 00, 00, 00, 0, time.UTC).Unix()),
+		"end unixtime of aggregate, this is exclusive")
+)
 
 func main() {
 	fmt.Println("hello, world")
 	// lib.GetConversations()
 	// lib.GetEmoji()
 
-	// 一旦決め打ちで
-	// TODO: duration は外から指定できるようにする
-	s := time.Date(2021, time.April, 01, 00, 00, 00, 0, time.UTC).Unix()
-	e := time.Date(2021, time.May, 01, 00, 00, 00, 0, time.UTC).Unix()
-	aggregateReaction("CF724P8RE", int(e), int(s))
+	aggregateReaction("CF724P8RE", endTime, startTime)
 
 	fmt.Println("success!")
 }
@@ -39,6 +42,15 @@ func init() {
 		panic(fmt.Sprintf("failed to create logger: %v", err))
 	}
 	logger = l.Sugar()
+
+	flag.Parse()
+	validateFlags()
+}
+
+func validateFlags() {
+	if startTime > endTime {
+		panic("startTime flag value is late than endTime flag value")
+	}
 }
 
 func aggregateReaction(ChannelID string, latest int, oldest int) {
