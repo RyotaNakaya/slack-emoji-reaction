@@ -3,6 +3,7 @@ package lib
 import (
 	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/slack-go/slack"
 )
@@ -23,6 +24,9 @@ func FetchChannelMessages(ChannelID string, latest int, oldest int) ([]slack.Mes
 
 	// next cursor が返ってこなくなるまで再帰的にコール
 	for {
+		// 1分あたり50まで
+		// rate limit に引っかからないようにゆっくり叩く
+		time.Sleep(time.Second * 1)
 		r, err := api.GetConversationHistory(&param)
 		if err != nil {
 			return nil, fmt.Errorf("failed to GetConversationHistory: %w", err)
@@ -48,6 +52,9 @@ func FetchChannelThreadMessages(ChannelID string, timestamps []string, latest in
 	res := []slack.Message{}
 
 	for _, ts := range timestamps {
+		// rate limit に引っかからないようにゆっくり叩く
+		// 1分あたり50まで
+		time.Sleep(time.Second * 1)
 		param := slack.GetConversationRepliesParameters{
 			ChannelID: ChannelID,
 			Timestamp: ts,
@@ -94,7 +101,7 @@ func FetchPublicChannelIDs() ([]string, error) {
 	for {
 		r, next, err := api.GetConversations(&param)
 		if err != nil {
-			return nil, fmt.Errorf("failed to GetConversationReplies: %w", err)
+			return nil, fmt.Errorf("failed to FetchPublicChannelIDs: %w", err)
 		}
 
 		for _, v := range r {
