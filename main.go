@@ -3,11 +3,11 @@ package main
 import (
 	"flag"
 	"fmt"
-	"log"
 	"os"
 	"time"
 
 	"github.com/RyotaNakaya/slack-emoji-reaction/lib"
+	"github.com/RyotaNakaya/slack-emoji-reaction/lib/repository"
 	"github.com/joho/godotenv"
 	"go.uber.org/zap"
 )
@@ -18,9 +18,20 @@ var (
 		"start unixtime of aggregate")
 	endTime = *flag.Int("endTime", int(time.Date(2021, 02, 01, 00, 00, 00, 0, time.UTC).Unix()),
 		"end unixtime of aggregate, this is exclusive")
+
+	dbUser         = *flag.String("dbuser", "root", "mysql user name")
+	dbPass         = *flag.String("dbpass", "", "mysql password")
+	dbHost         = *flag.String("dbhost", "localhost", "mysql host name")
+	dbPort         = *flag.String("dbport", "3306", "mysql port")
+	dbName         = *flag.String("dbname", "slack_reaction_development", "mysql database name")
+	dbMaxOpenConn  = *flag.Int("dbcon_open", 100, "mysql connection pool's max open connection quantity")
+	dbMaxIdleConn  = *flag.Int("dbcon_idle", 100, "mysql connection pool's max idle connection quantity")
+	dbConnLifetime = *flag.String("dbcon_timeout", "1h", "mysql connection's lifetime in seconds")
 )
 
 func main() {
+	defer func() { _ = logger.Sync() }()
+
 	st := time.Now()
 	logger.Info("start")
 	logger.Infof("startTime: %d, endTime: %d", startTime, endTime)
@@ -53,20 +64,26 @@ func main() {
 }
 
 func init() {
-	if err := godotenv.Load(); err != nil {
-		log.Fatalf("Error loading .env file, error: %v", err)
-	}
-	lib.SLACK_BOT_TOKEN = os.Getenv("SLACK_BOT_TOKEN")
-	lib.SLACK_USER_TOKEN = os.Getenv("SLACK_USER_TOKEN")
-
+	// setup logger
 	l, err := zap.NewDevelopment()
 	if err != nil {
 		panic(fmt.Sprintf("failed to create logger: %v", err))
 	}
 	logger = l.Sugar()
 
+	// read env variable
+	if err := godotenv.Load(); err != nil {
+		logger.Fatalf("Error loading .env file, error: %v", err)
+	}
+	lib.SLACK_BOT_TOKEN = os.Getenv("SLACK_BOT_TOKEN")
+	lib.SLACK_USER_TOKEN = os.Getenv("SLACK_USER_TOKEN")
+
+	// parse flag
 	flag.Parse()
 	validateFlags()
+
+	// setup database
+	repository.DB = repository.PrepareDBConnection(dbUser, dbPass, dbHost, dbPort, dbName, dbMaxOpenConn, dbMaxIdleConn, dbConnLifetime)
 }
 
 func validateFlags() {
@@ -76,8 +93,6 @@ func validateFlags() {
 }
 
 func aggregateReaction(ChannelID string, latest int, oldest int, reactionDict map[string]int) map[string]int {
-	// リアクション
-	// reactionDict := map[string]int{}
 	// スレッドタイムスタンプ
 	var ts []string
 
