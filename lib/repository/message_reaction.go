@@ -16,9 +16,32 @@ type MessageReaction struct {
 
 func (m *MessageReaction) save() error {
 	tx := DB.MustBegin()
+	// すでに登録されている場合は上書きしたいので、upsert にする
 	_, err := tx.NamedExec(`
 		INSERT INTO message_reactions (channel_id, message_id, reaction_name, reaction_count, message_ts, yyyymm, created_at)
 		VALUES (:channel_id, :message_id, :reaction_name, :reaction_count, :message_ts, :yyyymm, :created_at)`, &m)
+	if err != nil {
+		return err
+	}
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// バルクインサート用
+type MessageReactions struct {
+	MessageReactions []*MessageReaction
+}
+
+func (m *MessageReactions) save() error {
+	tx := DB.MustBegin()
+	// すでに登録されている場合は上書きしたいので、upsert にする
+	_, err := tx.NamedExec(`
+		INSERT INTO message_reactions (channel_id, message_id, reaction_name, reaction_count, message_ts, yyyymm, created_at)
+		VALUES (:channel_id, :message_id, :reaction_name, :reaction_count, :message_ts, :yyyymm, :created_at)`, m.MessageReactions)
 	if err != nil {
 		return err
 	}
