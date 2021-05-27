@@ -9,14 +9,14 @@ type MessageReaction struct {
 	MessageID     string `db:"message_id"`
 	ReactionName  string `db:"reaction_name"`
 	ReactionCount uint   `db:"reaction_count"`
-	MessageTS     uint   `db:"message_ts"`
+	MessageTS     string `db:"message_ts"`
 	YYYYMM        string `db:"yyyymm"`
 	CreatedAt     uint   `db:"created_at"`
 }
 
 func (m *MessageReaction) save() error {
 	tx := DB.MustBegin()
-	// すでに登録されている場合は上書きしたいので、upsert にする
+	// TODO: すでに登録されている場合は上書きしたいので、upsert にする
 	_, err := tx.NamedExec(`
 		INSERT INTO message_reactions (channel_id, message_id, reaction_name, reaction_count, message_ts, yyyymm, created_at)
 		VALUES (:channel_id, :message_id, :reaction_name, :reaction_count, :message_ts, :yyyymm, :created_at)`, &m)
@@ -36,9 +36,13 @@ type MessageReactions struct {
 	MessageReactions []*MessageReaction
 }
 
-func (m *MessageReactions) save() error {
+func (m *MessageReactions) Save() error {
+	if len(m.MessageReactions) == 0 {
+		return nil
+	}
+
 	tx := DB.MustBegin()
-	// すでに登録されている場合は上書きしたいので、upsert にする
+	// TODO: すでに登録されている場合は上書きしたいので、upsert にする
 	_, err := tx.NamedExec(`
 		INSERT INTO message_reactions (channel_id, message_id, reaction_name, reaction_count, message_ts, yyyymm, created_at)
 		VALUES (:channel_id, :message_id, :reaction_name, :reaction_count, :message_ts, :yyyymm, :created_at)`, m.MessageReactions)

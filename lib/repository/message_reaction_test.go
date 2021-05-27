@@ -7,7 +7,7 @@ package repository
 // 		MessageID:     "mid3",
 // 		ReactionName:  "rname",
 // 		ReactionCount: 12,
-// 		MessageTS:     1621868732,
+// 		MessageTS:     "1621868732",
 // 		YYYYMM:        "202101",
 // 		CreatedAt:     1621868732,
 // 	}
@@ -29,7 +29,7 @@ package repository
 // 			MessageID:     fmt.Sprintf("mid_%d", i),
 // 			ReactionName:  "rname",
 // 			ReactionCount: 12,
-// 			MessageTS:     1621868732,
+// 			MessageTS:     "1621868732",
 // 			YYYYMM:        "202101",
 // 			CreatedAt:     1621868732,
 // 		}

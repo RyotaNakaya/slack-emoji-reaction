@@ -4,11 +4,13 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/RyotaNakaya/slack-emoji-reaction/lib"
 	"github.com/RyotaNakaya/slack-emoji-reaction/lib/repository"
 	"github.com/joho/godotenv"
+	"github.com/slack-go/slack"
 	"go.uber.org/zap"
 )
 
@@ -42,19 +44,13 @@ func main() {
 		logger.Fatalf("error: %+v", err)
 	}
 
-	// 時間かかるから...一旦100個までに絞る
-	chs = chs[0:100]
+	// 時間かかるから...一旦絞る
+	chs = chs[0:10]
 
 	// reaction の集計
-	// リアクション
-	reactionDict := map[string]int{}
 	for idx, cid := range chs {
 		logger.Infof("aggregate ch: %s, idx: %d", cid, idx)
-		reactionDict = aggregateReaction(cid, endTime, startTime, reactionDict)
-	}
-
-	if err = output(reactionDict); err != nil {
-		logger.Fatalf("error: %+v", err)
+		aggregateReaction(cid, endTime, startTime)
 	}
 
 	logger.Info("success!")
@@ -92,7 +88,10 @@ func validateFlags() {
 	}
 }
 
-func aggregateReaction(ChannelID string, latest int, oldest int, reactionDict map[string]int) map[string]int {
+func aggregateReaction(ChannelID string, latest int, oldest int) {
+	logger.Infof("aggregate channel: %s", ChannelID)
+	mrs := repository.MessageReactions{}
+	now := time.Now().Unix()
 	// スレッドタイムスタンプ
 	var ts []string
 
@@ -102,15 +101,9 @@ func aggregateReaction(ChannelID string, latest int, oldest int, reactionDict ma
 		logger.Fatalf("error: %+v", err)
 	}
 	// reaction 集計
+	mrs.MessageReactions = append(mrs.MessageReactions, buildMessageReactions(now, messages)...)
+	// TODO: 無駄に二周ループ回してるのでもっとうまくできそう
 	for _, message := range messages {
-		for _, v := range message.Reactions {
-			if val, ok := reactionDict[v.Name]; ok {
-				reactionDict[v.Name] = val + v.Count
-			} else {
-				reactionDict[v.Name] = v.Count
-			}
-		}
-
 		// ThreadTimestamp がある場合スレッド取得で使うので溜めておく
 		if t := message.Msg.ThreadTimestamp; t != "" {
 			ts = append(ts, t)
@@ -118,39 +111,40 @@ func aggregateReaction(ChannelID string, latest int, oldest int, reactionDict ma
 	}
 
 	// スレッドを取得する
+	logger.Infof("start get thread: %#v", ts)
 	messages, err = lib.FetchChannelThreadMessages(ChannelID, ts, latest, oldest)
 	if err != nil {
 		logger.Fatalf("error: %+v", err)
 	}
-	// reaction 集計
-	for _, message := range messages {
-		for _, v := range message.Reactions {
-			if val, ok := reactionDict[v.Name]; ok {
-				reactionDict[v.Name] = val + v.Count
-			} else {
-				reactionDict[v.Name] = v.Count
-			}
-		}
-	}
+	mrs.MessageReactions = append(mrs.MessageReactions, buildMessageReactions(now, messages)...)
 
-	return reactionDict
+	if err = mrs.Save(); err != nil {
+		logger.Fatalf("error: %+v", err)
+	}
 }
 
-func output(reactionDict map[string]int) error {
-	var filename string = "tmp/msg.txt"
-	file, err := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
-	if err != nil {
-		return fmt.Errorf("failed to OpenFile: %w", err)
-	}
-	defer file.Close()
-
-	for k, v := range reactionDict {
-		row := fmt.Sprintf("%s: %d\n", k, v)
-		_, err := file.WriteString(row)
+func buildMessageReactions(now int64, messages []slack.Message) []*repository.MessageReaction {
+	res := []*repository.MessageReaction{}
+	for _, message := range messages {
+		tsUnix, err := strconv.Atoi(message.Timestamp[0:10])
 		if err != nil {
-			return fmt.Errorf("failed to WriteString: %w", err)
+			logger.Fatalf("error: %+v", err)
+		}
+
+		t := time.Unix(int64(tsUnix), 0)
+
+		for _, r := range message.Reactions {
+			mr := repository.MessageReaction{
+				ChannelID:     message.Channel,
+				MessageID:     message.Msg.ClientMsgID,
+				ReactionName:  r.Name,
+				ReactionCount: uint(r.Count),
+				MessageTS:     message.Timestamp,
+				YYYYMM:        strconv.Itoa(t.Year()) + fmt.Sprintf("%02d", int(t.Month())),
+				CreatedAt:     uint(now),
+			}
+			res = append(res, &mr)
 		}
 	}
-
-	return nil
+	return res
 }

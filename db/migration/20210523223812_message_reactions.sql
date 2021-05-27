@@ -5,12 +5,11 @@ create table message_reactions(
     message_id varchar(20) not null,
     reaction_name varchar(20) not null,
     reaction_count int(10) not null,
-    message_ts int(11) unsigned not null, -- unix timestamp
+    message_ts varchar(20) not null,
     yyyymm char(6) not null, -- YYYYMM
     created_at int(11) unsigned not null -- unix timestamp
 
-    , primary key (message_id, reaction_name)
-    , index (channel_id)
+    , primary key (channel_id, message_ts, reaction_name)
     , index (yyyymm)
 );
 -- +goose StatementEnd
