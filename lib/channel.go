@@ -72,7 +72,8 @@ func FetchChannelThreadMessages(ChannelID string, timestamps []string, latest in
 				return nil, fmt.Errorf("failed to GetConversationReplies: %w", err)
 			}
 
-			res = append(res, r...)
+			// 先頭は ConversationHistory で取得済みなので弾く
+			res = append(res, r[1:]...)
 
 			// 次のページがなければ終了
 			if next == "" {
