@@ -12,7 +12,8 @@ type MessageReaction struct {
 	MessageID     string `db:"message_id"`
 	ReactionName  string `db:"reaction_name"`
 	ReactionCount uint   `db:"reaction_count"`
-	MessageTS     string `db:"message_ts"`
+	MessageTSNano string `db:"message_ts_nano"`
+	MessageTS     uint   `db:"message_ts"`
 	YYYYMM        string `db:"yyyymm"`
 	CreatedAt     uint   `db:"created_at"`
 }
@@ -64,13 +65,13 @@ func (m *MessageReactions) Save() error {
 func buildUpsertQuery(m []*MessageReaction) string {
 	q := `
 	INSERT INTO message_reactions
-		(channel_id, message_id, reaction_name, reaction_count, message_ts, yyyymm, created_at)
+		(channel_id, message_id, reaction_name, reaction_count, message_ts_nano, message_ts, yyyymm, created_at)
 	VALUES 
 	`
 
 	s := []string{}
 	for _, v := range m {
-		s = append(s, fmt.Sprintf("('%v', '%v', '%v', %v, '%v', '%v', %v)", v.ChannelID, v.MessageID, v.ReactionName, v.ReactionCount, v.MessageTS, v.YYYYMM, v.CreatedAt))
+		s = append(s, fmt.Sprintf("('%v', '%v', '%v', %v,  %v, '%v', '%v', %v)", v.ChannelID, v.MessageID, v.ReactionName, v.ReactionCount, v.MessageTSNano, v.MessageTS, v.YYYYMM, v.CreatedAt))
 	}
 
 	// duplicate entry の時は一応 reaction_count だけ更新する

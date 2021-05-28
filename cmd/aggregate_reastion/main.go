@@ -150,7 +150,8 @@ func buildMessageReactions(chid string, now int64, messages []slack.Message) []*
 				MessageID:     message.Msg.ClientMsgID,
 				ReactionName:  r.Name,
 				ReactionCount: uint(r.Count),
-				MessageTS:     message.Timestamp,
+				MessageTSNano: message.Timestamp,
+				MessageTS:     uint(tsUnix),
 				YYYYMM:        strconv.Itoa(t.Year()) + fmt.Sprintf("%02d", int(t.Month())),
 				CreatedAt:     uint(now),
 			}
