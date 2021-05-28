@@ -41,11 +41,12 @@ func main() {
 	logger.Info("start")
 	logger.Infof("startTime: %d(%v), endTime: %d(%v)", startTime, time.Unix(int64(startTime), 0), endTime, time.Unix(int64(endTime), 0))
 
+	s := lib.NewSlack(os.Getenv("SLACK_USER_TOKEN"))
 	// 集計対象のチャンネルを取得
 	var chs []string
 	var err error
 	if targetChannelID == "" {
-		chs, err = lib.FetchPublicChannelIDs()
+		chs, err = s.FetchPublicChannelIDs()
 		if err != nil {
 			logger.Fatalf("error: %+v", err)
 		}
@@ -62,7 +63,7 @@ func main() {
 	// reaction の集計
 	for idx, cid := range chs {
 		logger.Infof("aggregate ch: %s, idx: %d", cid, idx)
-		aggregateReaction(cid, endTime, startTime)
+		aggregateReaction(s, cid, endTime, startTime)
 	}
 
 	logger.Info("success!")
@@ -83,8 +84,6 @@ func init() {
 	if err := godotenv.Load(); err != nil {
 		logger.Fatalf("Error loading .env file, error: %v", err)
 	}
-	lib.SLACK_BOT_TOKEN = os.Getenv("SLACK_BOT_TOKEN")
-	lib.SLACK_USER_TOKEN = os.Getenv("SLACK_USER_TOKEN")
 
 	// parse flag
 	flag.Parse()
@@ -100,7 +99,7 @@ func validateFlags() {
 	}
 }
 
-func aggregateReaction(ChannelID string, latest int, oldest int) {
+func aggregateReaction(s *lib.Slack, ChannelID string, latest int, oldest int) {
 	logger.Infof("aggregate channel: %s", ChannelID)
 	mrs := repository.MessageReactions{}
 	now := time.Now().Unix()
@@ -108,7 +107,7 @@ func aggregateReaction(ChannelID string, latest int, oldest int) {
 	var ts []string
 
 	// メッセージを取得する
-	messages, err := lib.FetchChannelMessages(ChannelID, latest, oldest)
+	messages, err := s.FetchChannelMessages(ChannelID, latest, oldest)
 	if err != nil {
 		logger.Fatalf("error: %+v", err)
 	}
@@ -124,7 +123,7 @@ func aggregateReaction(ChannelID string, latest int, oldest int) {
 
 	// スレッドを取得する
 	logger.Infof("start get thread: %#v", ts)
-	messages, err = lib.FetchChannelThreadMessages(ChannelID, ts, latest, oldest)
+	messages, err = s.FetchChannelThreadMessages(ChannelID, ts, latest, oldest)
 	if err != nil {
 		logger.Fatalf("error: %+v", err)
 	}

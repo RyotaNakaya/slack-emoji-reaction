@@ -9,8 +9,7 @@ import (
 )
 
 // 指定されたチャンネル、期間のメッセージ一覧を返す
-func FetchChannelMessages(ChannelID string, latest int, oldest int) ([]slack.Message, error) {
-	api := slack.New(SLACK_USER_TOKEN)
+func (s *Slack) FetchChannelMessages(ChannelID string, latest int, oldest int) ([]slack.Message, error) {
 	param := slack.GetConversationHistoryParameters{
 		ChannelID: ChannelID,
 		Cursor:    "",
@@ -27,7 +26,7 @@ func FetchChannelMessages(ChannelID string, latest int, oldest int) ([]slack.Mes
 		// 1分あたり50まで
 		// rate limit に引っかからないようにゆっくり叩く
 		time.Sleep(time.Second * 1)
-		r, err := api.GetConversationHistory(&param)
+		r, err := s.client.GetConversationHistory(&param)
 		if err != nil {
 			return nil, fmt.Errorf("failed to GetConversationHistory: %w", err)
 		}
@@ -47,8 +46,7 @@ func FetchChannelMessages(ChannelID string, latest int, oldest int) ([]slack.Mes
 }
 
 // 指定されたチャンネルスレッド、期間のメッセージ一覧を返す
-func FetchChannelThreadMessages(ChannelID string, timestamps []string, latest int, oldest int) ([]slack.Message, error) {
-	api := slack.New(SLACK_USER_TOKEN)
+func (s *Slack) FetchChannelThreadMessages(ChannelID string, timestamps []string, latest int, oldest int) ([]slack.Message, error) {
 	res := []slack.Message{}
 
 	for _, ts := range timestamps {
@@ -67,7 +65,7 @@ func FetchChannelThreadMessages(ChannelID string, timestamps []string, latest in
 
 		// next cursor が返ってこなくなるまで再帰的にコール
 		for {
-			r, _, next, err := api.GetConversationReplies(&param)
+			r, _, next, err := s.client.GetConversationReplies(&param)
 			if err != nil {
 				return nil, fmt.Errorf("failed to GetConversationReplies: %w", err)
 			}
@@ -88,8 +86,7 @@ func FetchChannelThreadMessages(ChannelID string, timestamps []string, latest in
 }
 
 // パブリックチャンネルIDの一覧を返します
-func FetchPublicChannelIDs() ([]string, error) {
-	api := slack.New(SLACK_USER_TOKEN)
+func (s *Slack) FetchPublicChannelIDs() ([]string, error) {
 	param := slack.GetConversationsParameters{
 		ExcludeArchived: false,
 		Limit:           200,
@@ -100,7 +97,7 @@ func FetchPublicChannelIDs() ([]string, error) {
 
 	// next cursor が返ってこなくなるまで再帰的にコール
 	for {
-		r, next, err := api.GetConversations(&param)
+		r, next, err := s.client.GetConversations(&param)
 		if err != nil {
 			return nil, fmt.Errorf("failed to FetchPublicChannelIDs: %w", err)
 		}

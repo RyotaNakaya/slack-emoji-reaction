@@ -4,13 +4,10 @@ import (
 	"fmt"
 	"log"
 	"os"
-
-	"github.com/slack-go/slack"
 )
 
-func GetEmoji() {
-	api := slack.New(SLACK_BOT_TOKEN)
-	res, err := api.GetEmoji()
+func (s *Slack) GetEmoji() {
+	res, err := s.client.GetEmoji()
 	if err != nil {
 		log.Fatal(err)
 	}
