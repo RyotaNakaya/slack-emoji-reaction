@@ -15,9 +15,11 @@ import (
 )
 
 var (
-	now       = time.Now()
-	logger    *zap.SugaredLogger
-	startTime = *flag.Int("startTime", int(time.Date(now.Year(), now.Month()-1, 1, 0, 0, 0, 0, time.Local).Unix()),
+	now    = time.Now()
+	logger *zap.SugaredLogger
+
+	targetChannelID = *flag.String("targetChannelID", "", "if not specify, aggregate all public ch")
+	startTime       = *flag.Int("startTime", int(time.Date(now.Year(), now.Month()-1, 1, 0, 0, 0, 0, time.Local).Unix()),
 		"start unixtime of aggregate")
 	endTime = *flag.Int("endTime", int(time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.Local).Unix()),
 		"end unixtime of aggregate, this is exclusive")
@@ -40,13 +42,22 @@ func main() {
 	logger.Infof("startTime: %d(%v), endTime: %d(%v)", startTime, time.Unix(int64(startTime), 0), endTime, time.Unix(int64(endTime), 0))
 
 	// 集計対象のチャンネルを取得
-	chs, err := lib.FetchPublicChannelIDs()
-	if err != nil {
-		logger.Fatalf("error: %+v", err)
+	var chs []string
+	var err error
+	if targetChannelID == "" {
+		chs, err = lib.FetchPublicChannelIDs()
+		if err != nil {
+			logger.Fatalf("error: %+v", err)
+		}
+	} else {
+		chs = []string{targetChannelID}
+
 	}
 
 	// 時間かかるから...一旦絞る
-	chs = chs[0:100]
+	if len(chs) > 5 {
+		chs = chs[0:4]
+	}
 
 	// reaction の集計
 	for idx, cid := range chs {
