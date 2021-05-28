@@ -1,0 +1,13 @@
+# buildイメージ
+FROM golang:1.16 AS builder
+ADD . /app
+WORKDIR /app
+
+## main.goをコンパイルし、実行バイナリを保存
+RUN CGO_ENABLED=0 GOOS=linux go build -o server cmd/aggregate_reastion/main.go
+
+# run-timeイメージ
+FROM alpine:3.10
+COPY --from=builder /app/server /app
+EXPOSE 50051
+ENTRYPOINT ["/app"]

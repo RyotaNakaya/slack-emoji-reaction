@@ -9,3 +9,6 @@ goose_up:
 
 goose_down:
 	goose -dir ./db/migration/ mysql "root:@/slack_reaction_development?parseTime=true" down
+
+dockerbuild:
+	docker build -f build/package/Dockerfile.aggregate_reaction  ./ -t aggregate-reaction:latest
