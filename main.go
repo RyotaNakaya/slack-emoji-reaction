@@ -15,10 +15,11 @@ import (
 )
 
 var (
+	now       = time.Now()
 	logger    *zap.SugaredLogger
-	startTime = *flag.Int("startTime", int(time.Date(2021, 01, 01, 00, 00, 00, 0, time.UTC).Unix()),
+	startTime = *flag.Int("startTime", int(time.Date(now.Year(), now.Month()-1, 1, 0, 0, 0, 0, time.Local).Unix()),
 		"start unixtime of aggregate")
-	endTime = *flag.Int("endTime", int(time.Date(2021, 02, 01, 00, 00, 00, 0, time.UTC).Unix()),
+	endTime = *flag.Int("endTime", int(time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.Local).Unix()),
 		"end unixtime of aggregate, this is exclusive")
 
 	dbUser         = *flag.String("dbuser", "root", "mysql user name")
@@ -36,7 +37,7 @@ func main() {
 
 	st := time.Now()
 	logger.Info("start")
-	logger.Infof("startTime: %d, endTime: %d", startTime, endTime)
+	logger.Infof("startTime: %d(%v), endTime: %d(%v)", startTime, time.Unix(int64(startTime), 0), endTime, time.Unix(int64(endTime), 0))
 
 	// 集計対象のチャンネルを取得
 	chs, err := lib.FetchPublicChannelIDs()
