@@ -45,7 +45,7 @@ func main() {
 	}
 
 	// 時間かかるから...一旦絞る
-	chs = chs[0:10]
+	chs = chs[0:100]
 
 	// reaction の集計
 	for idx, cid := range chs {
@@ -101,7 +101,7 @@ func aggregateReaction(ChannelID string, latest int, oldest int) {
 		logger.Fatalf("error: %+v", err)
 	}
 	// reaction 集計
-	mrs.MessageReactions = append(mrs.MessageReactions, buildMessageReactions(now, messages)...)
+	mrs.MessageReactions = append(mrs.MessageReactions, buildMessageReactions(ChannelID, now, messages)...)
 	// TODO: 無駄に二周ループ回してるのでもっとうまくできそう
 	for _, message := range messages {
 		// ThreadTimestamp がある場合スレッド取得で使うので溜めておく
@@ -116,14 +116,14 @@ func aggregateReaction(ChannelID string, latest int, oldest int) {
 	if err != nil {
 		logger.Fatalf("error: %+v", err)
 	}
-	mrs.MessageReactions = append(mrs.MessageReactions, buildMessageReactions(now, messages)...)
+	mrs.MessageReactions = append(mrs.MessageReactions, buildMessageReactions(ChannelID, now, messages)...)
 
 	if err = mrs.Save(); err != nil {
-		logger.Fatalf("error: %+v", err)
+		logger.Fatalf("error: %+v, messages: %#v", err, messages)
 	}
 }
 
-func buildMessageReactions(now int64, messages []slack.Message) []*repository.MessageReaction {
+func buildMessageReactions(chid string, now int64, messages []slack.Message) []*repository.MessageReaction {
 	res := []*repository.MessageReaction{}
 	for _, message := range messages {
 		tsUnix, err := strconv.Atoi(message.Timestamp[0:10])
@@ -135,7 +135,7 @@ func buildMessageReactions(now int64, messages []slack.Message) []*repository.Me
 
 		for _, r := range message.Reactions {
 			mr := repository.MessageReaction{
-				ChannelID:     message.Channel,
+				ChannelID:     chid,
 				MessageID:     message.Msg.ClientMsgID,
 				ReactionName:  r.Name,
 				ReactionCount: uint(r.Count),

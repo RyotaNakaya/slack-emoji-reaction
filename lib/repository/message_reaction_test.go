@@ -25,18 +25,18 @@ package repository
 
 // 	for i := 0; i <= 5; i++ {
 // 		mr := MessageReaction{
-// 			ChannelID:     "cid",
+// 			ChannelID:     "cid2",
 // 			MessageID:     fmt.Sprintf("mid_%d", i),
 // 			ReactionName:  "rname",
-// 			ReactionCount: 12,
-// 			MessageTS:     "1621868732",
+// 			ReactionCount: 10,
+// 			MessageTS:     fmt.Sprintf("1621868732_%d", i),
 // 			YYYYMM:        "202101",
 // 			CreatedAt:     1621868732,
 // 		}
 // 		mrs.MessageReactions = append(mrs.MessageReactions, &mr)
 // 	}
 
-// 	err := mrs.save()
+// 	err := mrs.Save()
 // 	if err != nil {
 // 		t.Fatalf("err: %#v", err)
 // 	}
