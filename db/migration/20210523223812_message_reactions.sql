@@ -5,6 +5,7 @@ create table message_reactions(
     message_id varchar(20) not null,
     reaction_name varchar(20) not null,
     reaction_count int(10) not null,
+    message_user_id varchar(20) not null,
     message_ts_nano varchar(20) not null,
     message_ts int(11) not null, -- unix timestamp
     yyyymm char(6) not null, -- YYYYMM
@@ -12,6 +13,7 @@ create table message_reactions(
 
     , primary key (channel_id, message_ts, reaction_name)
     , index (yyyymm)
+    , index (message_user_id)
 );
 -- +goose StatementEnd
 

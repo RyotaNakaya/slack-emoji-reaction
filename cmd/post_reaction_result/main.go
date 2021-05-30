@@ -34,6 +34,7 @@ var (
 
 func main() {
 	defer func() { _ = logger.Sync() }()
+	defer repository.DB.Close()
 
 	st := time.Now()
 	logger.Info("start post_reaction_result")
