@@ -40,12 +40,26 @@ func main() {
 	logger.Info("start post_reaction_result")
 	logger.Infof("startTime: %d(%v), endTime: %d(%v)", startTime, time.Unix(int64(startTime), 0), endTime, time.Unix(int64(endTime), 0))
 
+	term := fmt.Sprintf("[%v~%v]", time.Unix(int64(startTime), 0).Format("2006/01/02"), time.Unix(int64(endTime), 0).Format("2006/01/02"))
+	// 多く使われたリアクションを集計
 	ms := selectReactionCount(startTime, endTime)
-	text := "今月の slack リアクション集計結果"
+	text := ":tada: *たくさん使われたリアクション* :tada: " + term
 	for i, v := range ms {
 		text += fmt.Sprintf("\n%d位: :%s: %d回", i+1, v.ReactionName, v.ReactionCount)
 	}
 
+	// リアクションをたくさんもらった人を集計
+	text += "\n\n:trophy: *リアクションをたくさんもらった人* :trophy: " + term
+	ru := selectReactedUser(startTime, endTime)
+	for _, v := range ru {
+		t := ""
+		for _, v2 := range v.ReactedUserReaction {
+			t += fmt.Sprintf(":%s: %d回、", v2.ReactionName, v2.ReactionCount)
+		}
+		text += fmt.Sprintf("\n%s さん=> %s...etc", v.UserName, t)
+	}
+
+	// slack にポストする
 	s := lib.NewSlack(os.Getenv("SLACK_BOT_TOKEN"))
 	err := s.PostMessage(targetChannelID, text)
 	if err != nil {
@@ -114,4 +128,79 @@ func selectReactionCount(s, e int) []messageReaction {
 type messageReaction struct {
 	ReactionName  string `db:"reaction_name"`
 	ReactionCount int    `db:"reaction_count"`
+}
+
+// selectReactedUser はリアクションをたくさんもらったユーザーを返します
+// TODO: ハイパーやっつけ
+func selectReactedUser(s, e int) []ReactedUser {
+	res := []ReactedUser{}
+	q := `
+		select message_user_id, sum(reaction_count) reaction_count
+		from message_reactions
+		where message_ts between ? and ?
+		group by message_user_id
+		order by reaction_count desc
+		limit 3;`
+
+	rows, err := repository.DB.Queryx(q, s, e)
+	if err != nil {
+		logger.Fatalf("error: %+v", err)
+	}
+	userIDs := []string{}
+	for rows.Next() {
+		var message_user_id string
+		var reaction_count int
+		err = rows.Scan(&message_user_id, &reaction_count)
+		userIDs = append(userIDs, message_user_id)
+	}
+	if err != nil {
+		logger.Fatalf("error: %+v", err)
+	}
+
+	c := lib.NewSlack(os.Getenv("SLACK_USER_TOKEN"))
+	for _, v := range userIDs {
+		ru := ReactedUser{}
+		u, err := c.GetUser(v)
+		if err != nil {
+			logger.Fatalf("error: %+v", err)
+		}
+		ru.UserName = u.DisplayName
+
+		q = `select reaction_name, sum(reaction_count) reaction_count
+			from message_reactions
+			where message_ts between ? and ?
+			and message_user_id = ?
+			group by reaction_name
+			order by reaction_count desc
+			limit 3;`
+		rows, err := repository.DB.Queryx(q, s, e, v)
+		if err != nil {
+			logger.Fatalf("error: %+v", err)
+		}
+		for rows.Next() {
+			rur := ReactedUserReaction{}
+			var reaction_name string
+			var reaction_count int
+			err = rows.Scan(&reaction_name, &reaction_count)
+			rur.ReactionName = reaction_name
+			rur.ReactionCount = reaction_count
+			ru.ReactedUserReaction = append(ru.ReactedUserReaction, rur)
+		}
+		if err != nil {
+			logger.Fatalf("error: %+v", err)
+		}
+		res = append(res, ru)
+	}
+	logger.Info(fmt.Sprintf("'%#v'", res))
+	return res
+}
+
+type ReactedUser struct {
+	UserName            string
+	ReactedUserReaction []ReactedUserReaction
+}
+
+type ReactedUserReaction struct {
+	ReactionName  string
+	ReactionCount int
 }
