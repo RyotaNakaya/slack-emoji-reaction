@@ -32,6 +32,11 @@ var (
 	dbConnLifetime = *flag.String("dbcon_timeout", "1h", "mysql connection's lifetime in seconds")
 )
 
+const (
+	MOST_USED_REACTION_POST_COUNT     = 10
+	MOST_USED_REACTED_USER_POST_COUNT = 10
+)
+
 func main() {
 	defer func() { _ = logger.Sync() }()
 	defer repository.DB.Close()
@@ -49,6 +54,7 @@ func main() {
 	}
 
 	// リアクションをたくさんもらった人を集計
+	// TODO: #general や #kintai のような業務連絡系は除外してもいいかも
 	text += "\n\n:trophy: *リアクションをたくさんもらった人* :trophy: " + term
 	ru := selectReactedUser(startTime, endTime)
 	for _, v := range ru {
@@ -108,9 +114,9 @@ func selectReactionCount(s, e int) []messageReaction {
 		where message_ts between ? and ?
 		group by reaction_name
 		order by reaction_count desc
-		limit 10;`
+		limit ?;`
 
-	rows, err := repository.DB.Queryx(q, s, e)
+	rows, err := repository.DB.Queryx(q, s, e, MOST_USED_REACTION_POST_COUNT)
 	if err != nil {
 		logger.Fatalf("error: %+v", err)
 	}
@@ -134,15 +140,17 @@ type messageReaction struct {
 // TODO: ハイパーやっつけ
 func selectReactedUser(s, e int) []ReactedUser {
 	res := []ReactedUser{}
+	// TODO: Slackbot を弾く
 	q := `
 		select message_user_id, sum(reaction_count) reaction_count
 		from message_reactions
 		where message_ts between ? and ?
+		and message_user_id != ""
 		group by message_user_id
 		order by reaction_count desc
-		limit 3;`
+		limit ?;`
 
-	rows, err := repository.DB.Queryx(q, s, e)
+	rows, err := repository.DB.Queryx(q, s, e, MOST_USED_REACTED_USER_POST_COUNT)
 	if err != nil {
 		logger.Fatalf("error: %+v", err)
 	}
@@ -172,7 +180,7 @@ func selectReactedUser(s, e int) []ReactedUser {
 			and message_user_id = ?
 			group by reaction_name
 			order by reaction_count desc
-			limit 3;`
+			limit 5;`
 		rows, err := repository.DB.Queryx(q, s, e, v)
 		if err != nil {
 			logger.Fatalf("error: %+v", err)
@@ -191,7 +199,6 @@ func selectReactedUser(s, e int) []ReactedUser {
 		}
 		res = append(res, ru)
 	}
-	logger.Info(fmt.Sprintf("'%#v'", res))
 	return res
 }
 

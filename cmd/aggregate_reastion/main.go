@@ -57,9 +57,9 @@ func main() {
 	}
 
 	// 時間かかるから...一旦絞る
-	if len(chs) > 5 {
-		chs = chs[0:4]
-	}
+	// if len(chs) > 5 {
+	// 	chs = chs[0:4]
+	// }
 
 	// reaction の集計
 	for idx, cid := range chs {

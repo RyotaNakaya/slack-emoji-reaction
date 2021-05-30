@@ -15,7 +15,7 @@ func (s *Slack) FetchChannelMessages(ChannelID string, latest int, oldest int) (
 		Cursor:    "",
 		Inclusive: false,
 		Latest:    strconv.Itoa(int(latest)),
-		Limit:     200,
+		Limit:     500,
 		Oldest:    strconv.Itoa(int(oldest)),
 	}
 
@@ -59,7 +59,7 @@ func (s *Slack) FetchChannelThreadMessages(ChannelID string, timestamps []string
 			Cursor:    "",
 			Inclusive: false,
 			Latest:    strconv.Itoa(int(latest)),
-			Limit:     200,
+			Limit:     500,
 			Oldest:    strconv.Itoa(int(oldest)),
 		}
 
@@ -89,7 +89,7 @@ func (s *Slack) FetchChannelThreadMessages(ChannelID string, timestamps []string
 func (s *Slack) FetchPublicChannelIDs() ([]string, error) {
 	param := slack.GetConversationsParameters{
 		ExcludeArchived: false,
-		Limit:           200,
+		Limit:           500,
 		Types:           []string{"public_channel"},
 	}
 
