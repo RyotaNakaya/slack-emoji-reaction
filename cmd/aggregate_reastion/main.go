@@ -18,20 +18,20 @@ var (
 	now    = time.Now()
 	logger *zap.SugaredLogger
 
-	targetChannelID = *flag.String("targetChannelID", "", "if not specify, aggregate all public ch")
-	startTime       = *flag.Int("startTime", int(time.Date(now.Year(), now.Month()-1, 1, 0, 0, 0, 0, time.Local).Unix()),
+	targetChannelID = flag.String("targetChannelID", "", "if not specify, aggregate all public ch")
+	startTime       = flag.Int("startTime", int(time.Date(now.Year(), now.Month()-1, 1, 0, 0, 0, 0, time.Local).Unix()),
 		"start unixtime of aggregate")
-	endTime = *flag.Int("endTime", int(time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.Local).Unix()),
+	endTime = flag.Int("endTime", int(time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.Local).Unix()),
 		"end unixtime of aggregate, this is exclusive")
 
-	dbUser         = *flag.String("dbuser", "root", "mysql user name")
-	dbPass         = *flag.String("dbpass", "", "mysql password")
-	dbHost         = *flag.String("dbhost", "localhost", "mysql host name")
-	dbPort         = *flag.String("dbport", "3306", "mysql port")
-	dbName         = *flag.String("dbname", "slack_reaction_development", "mysql database name")
-	dbMaxOpenConn  = *flag.Int("dbcon_open", 100, "mysql connection pool's max open connection quantity")
-	dbMaxIdleConn  = *flag.Int("dbcon_idle", 100, "mysql connection pool's max idle connection quantity")
-	dbConnLifetime = *flag.String("dbcon_timeout", "1h", "mysql connection's lifetime in seconds")
+	dbUser         = flag.String("dbuser", "root", "mysql user name")
+	dbPass         = flag.String("dbpass", "", "mysql password")
+	dbHost         = flag.String("dbhost", "localhost", "mysql host name")
+	dbPort         = flag.String("dbport", "3306", "mysql port")
+	dbName         = flag.String("dbname", "slack_reaction_development", "mysql database name")
+	dbMaxOpenConn  = flag.Int("dbcon_open", 100, "mysql connection pool's max open connection quantity")
+	dbMaxIdleConn  = flag.Int("dbcon_idle", 100, "mysql connection pool's max idle connection quantity")
+	dbConnLifetime = flag.String("dbcon_timeout", "1h", "mysql connection's lifetime in seconds")
 )
 
 func main() {
@@ -40,19 +40,19 @@ func main() {
 
 	st := time.Now()
 	logger.Info("start")
-	logger.Infof("startTime: %d(%v), endTime: %d(%v)", startTime, time.Unix(int64(startTime), 0), endTime, time.Unix(int64(endTime), 0))
+	logger.Infof("startTime: %d(%v), endTime: %d(%v)", startTime, time.Unix(int64(*startTime), 0), endTime, time.Unix(int64(*endTime), 0))
 
 	s := lib.NewSlack(os.Getenv("SLACK_USER_TOKEN"))
 	// 集計対象のチャンネルを取得
 	var chs []string
 	var err error
-	if targetChannelID == "" {
+	if *targetChannelID == "" {
 		chs, err = s.FetchPublicChannelIDs()
 		if err != nil {
 			logger.Fatalf("error: %+v", err)
 		}
 	} else {
-		chs = []string{targetChannelID}
+		chs = []string{*targetChannelID}
 
 	}
 
@@ -64,7 +64,7 @@ func main() {
 	// reaction の集計
 	for idx, cid := range chs {
 		logger.Infof("aggregate ch: %s, idx: %d", cid, idx)
-		aggregateReaction(s, cid, endTime, startTime)
+		aggregateReaction(s, cid, *endTime, *startTime)
 	}
 
 	logger.Info("success!")
@@ -91,11 +91,11 @@ func init() {
 	validateFlags()
 
 	// setup database
-	repository.DB = repository.PrepareDBConnection(dbUser, dbPass, dbHost, dbPort, dbName, dbMaxOpenConn, dbMaxIdleConn, dbConnLifetime)
+	repository.DB = repository.PrepareDBConnection(*dbUser, *dbPass, *dbHost, *dbPort, *dbName, *dbMaxOpenConn, *dbMaxIdleConn, *dbConnLifetime)
 }
 
 func validateFlags() {
-	if startTime > endTime {
+	if *startTime > *endTime {
 		panic("startTime flag value is late than endTime flag value")
 	}
 }

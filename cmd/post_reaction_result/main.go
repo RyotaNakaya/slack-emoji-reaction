@@ -16,20 +16,20 @@ var (
 	now    = time.Now()
 	logger *zap.SugaredLogger
 
-	targetChannelID = *flag.String("targetChannelID", "C023TM73HR7", "target post shannel_id")
-	startTime       = *flag.Int("startTime", int(time.Date(now.Year(), now.Month()-1, 1, 0, 0, 0, 0, time.Local).Unix()),
+	targetChannelID = flag.String("targetChannelID", "C023TM73HR7", "target post shannel_id")
+	startTime       = flag.Int("startTime", int(time.Date(now.Year(), now.Month()-1, 1, 0, 0, 0, 0, time.Local).Unix()),
 		"start unixtime of aggregate")
-	endTime = *flag.Int("endTime", int(time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.Local).Unix()),
+	endTime = flag.Int("endTime", int(time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.Local).Unix()),
 		"end unixtime of aggregate, this is exclusive")
 
-	dbUser         = *flag.String("dbuser", "root", "mysql user name")
-	dbPass         = *flag.String("dbpass", "", "mysql password")
-	dbHost         = *flag.String("dbhost", "localhost", "mysql host name")
-	dbPort         = *flag.String("dbport", "3306", "mysql port")
-	dbName         = *flag.String("dbname", "slack_reaction_development", "mysql database name")
-	dbMaxOpenConn  = *flag.Int("dbcon_open", 100, "mysql connection pool's max open connection quantity")
-	dbMaxIdleConn  = *flag.Int("dbcon_idle", 100, "mysql connection pool's max idle connection quantity")
-	dbConnLifetime = *flag.String("dbcon_timeout", "1h", "mysql connection's lifetime in seconds")
+	dbUser         = flag.String("dbuser", "root", "mysql user name")
+	dbPass         = flag.String("dbpass", "", "mysql password")
+	dbHost         = flag.String("dbhost", "localhost", "mysql host name")
+	dbPort         = flag.String("dbport", "3306", "mysql port")
+	dbName         = flag.String("dbname", "slack_reaction_development", "mysql database name")
+	dbMaxOpenConn  = flag.Int("dbcon_open", 100, "mysql connection pool's max open connection quantity")
+	dbMaxIdleConn  = flag.Int("dbcon_idle", 100, "mysql connection pool's max idle connection quantity")
+	dbConnLifetime = flag.String("dbcon_timeout", "1h", "mysql connection's lifetime in seconds")
 )
 
 const (
@@ -43,11 +43,11 @@ func main() {
 
 	st := time.Now()
 	logger.Info("start post_reaction_result")
-	logger.Infof("startTime: %d(%v), endTime: %d(%v)", startTime, time.Unix(int64(startTime), 0), endTime, time.Unix(int64(endTime), 0))
+	logger.Infof("startTime: %d(%v), endTime: %d(%v)", *startTime, time.Unix(int64(*startTime), 0), *endTime, time.Unix(int64(*endTime), 0))
 
-	term := fmt.Sprintf("[%v~%v]", time.Unix(int64(startTime), 0).Format("2006/01/02"), time.Unix(int64(endTime), 0).Format("2006/01/02"))
+	term := fmt.Sprintf("[%v~%v]", time.Unix(int64(*startTime), 0).Format("2006/01/02"), time.Unix(int64(*endTime), 0).Format("2006/01/02"))
 	// 多く使われたリアクションを集計
-	ms := selectReactionCount(startTime, endTime)
+	ms := selectReactionCount(*startTime, *endTime)
 	text := ":tada: *たくさん使われたリアクション* :tada: " + term
 	for i, v := range ms {
 		text += fmt.Sprintf("\n%d位: :%s: %d回", i+1, v.ReactionName, v.ReactionCount)
@@ -56,7 +56,7 @@ func main() {
 	// リアクションをたくさんもらった人を集計
 	// TODO: #general や #kintai のような業務連絡系は除外してもいいかも
 	text += "\n\n:trophy: *リアクションをたくさんもらった人* :trophy: " + term
-	ru := selectReactedUser(startTime, endTime)
+	ru := selectReactedUser(*startTime, *endTime)
 	for _, v := range ru {
 		t := ""
 		for _, v2 := range v.ReactedUserReaction {
@@ -67,7 +67,7 @@ func main() {
 
 	// slack にポストする
 	s := lib.NewSlack(os.Getenv("SLACK_BOT_TOKEN"))
-	err := s.PostMessage(targetChannelID, text)
+	err := s.PostMessage(*targetChannelID, text)
 	if err != nil {
 		logger.Fatalf("error: %+v", err)
 	}
@@ -96,11 +96,11 @@ func init() {
 	validateFlags()
 
 	// setup database
-	repository.DB = repository.PrepareDBConnection(dbUser, dbPass, dbHost, dbPort, dbName, dbMaxOpenConn, dbMaxIdleConn, dbConnLifetime)
+	repository.DB = repository.PrepareDBConnection(*dbUser, *dbPass, *dbHost, *dbPort, *dbName, *dbMaxOpenConn, *dbMaxIdleConn, *dbConnLifetime)
 }
 
 func validateFlags() {
-	if startTime > endTime {
+	if *startTime > *endTime {
 		panic("startTime flag value is late than endTime flag value")
 	}
 }
