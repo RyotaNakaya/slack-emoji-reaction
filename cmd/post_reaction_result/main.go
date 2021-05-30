@@ -36,18 +36,22 @@ func main() {
 	defer func() { _ = logger.Sync() }()
 
 	st := time.Now()
-	logger.Info("start")
+	logger.Info("start post_reaction_result")
 	logger.Infof("startTime: %d(%v), endTime: %d(%v)", startTime, time.Unix(int64(startTime), 0), endTime, time.Unix(int64(endTime), 0))
 
+	ms := selectReactionCount(startTime, endTime)
+	text := "今月の slack リアクション集計結果"
+	for i, v := range ms {
+		text += fmt.Sprintf("\n%d位: :%s: %d回", i+1, v.ReactionName, v.ReactionCount)
+	}
+
 	s := lib.NewSlack(os.Getenv("SLACK_BOT_TOKEN"))
-	// TODO: DB から集計してポストする
-	text := "hello"
 	err := s.PostMessage(targetChannelID, text)
 	if err != nil {
 		logger.Fatalf("error: %+v", err)
 	}
 
-	logger.Info("success!")
+	logger.Info("success post_reaction_result!")
 	et := time.Now()
 	logger.Infof("The call took %v to run.\n", et.Sub(st))
 
@@ -78,4 +82,35 @@ func validateFlags() {
 	if startTime > endTime {
 		panic("startTime flag value is late than endTime flag value")
 	}
+}
+
+// selectReactionCount はリアクション数の多い順にソートした結果を返します
+func selectReactionCount(s, e int) []messageReaction {
+	res := []messageReaction{}
+	q := `
+		select reaction_name, sum(reaction_count) reaction_count
+		from message_reactions
+		where message_ts between ? and ?
+		group by reaction_name
+		order by reaction_count desc
+		limit 10;`
+
+	rows, err := repository.DB.Queryx(q, s, e)
+	if err != nil {
+		logger.Fatalf("error: %+v", err)
+	}
+	var r messageReaction
+	for rows.Next() {
+		err = rows.StructScan(&r)
+		res = append(res, r)
+	}
+	if err != nil {
+		logger.Fatalf("error: %+v", err)
+	}
+	return res
+}
+
+type messageReaction struct {
+	ReactionName  string `db:"reaction_name"`
+	ReactionCount int    `db:"reaction_count"`
 }
