@@ -37,7 +37,7 @@ slack の emoji reaction を集計して結果を slack にポストするツー
   - `startTime`、`endTime` で集計の対象期間を指定できる（指定しない場合は前月 1 ヶ月間となる）
   - `targetChannelID` を指定すると指定したチャンネルのみを集計する（指定しない場合は全てのパブリックチャンネル）
   - `db~` はデータベース接続情報
-- 同じ期間で複数回集計を実行しても多重にデータができることなない
+- 同じ期間で複数回集計を実行しても多重にデータができることはない
   - `message_ts` と `reaction_name` で複合ユニークになっているため
     - `message_id` はなぜか空の時があるので、仕方なく `message_ts` をキーに利用している
 
@@ -48,3 +48,8 @@ slack の emoji reaction を集計して結果を slack にポストするツー
 - 必要な設定はフラグおよび環境変数で受け取れるようになっているので、適宜セットする
   - `targetChannelID` には通知先の slack チャンネルの ID を指定
   - 他は集計と同様
+
+# 利用イメージ
+
+こんな感じで集計結果が slack にポストされる
+<img width="980" alt="20210530-182845" src="https://user-images.githubusercontent.com/45222883/120893306-920c6780-c64d-11eb-9315-5ba40f544319.png">
