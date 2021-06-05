@@ -1,10 +1,11 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"os"
 	"time"
+
+	"github.com/namsral/flag"
 
 	"github.com/RyotaNakaya/slack-emoji-reaction/lib"
 	"github.com/RyotaNakaya/slack-emoji-reaction/lib/repository"
@@ -16,8 +17,11 @@ var (
 	now    = time.Now()
 	logger *zap.SugaredLogger
 
+	// test 用
 	targetChannelID = flag.String("targetChannelID", "C023TM73HR7", "target post shannel_id")
-	startTime       = flag.Int("startTime", int(time.Date(now.Year(), now.Month()-1, 1, 0, 0, 0, 0, time.Local).Unix()),
+	// 本番用
+	// targetChannelID = flag.String("targetChannelID", "C023SG46EBF", "target post shannel_id")
+	startTime = flag.Int("startTime", int(time.Date(now.Year(), now.Month()-1, 1, 0, 0, 0, 0, time.Local).Unix()),
 		"start unixtime of aggregate")
 	endTime = flag.Int("endTime", int(time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.Local).Unix()),
 		"end unixtime of aggregate, this is exclusive")

@@ -1,11 +1,12 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"os"
 	"strconv"
 	"time"
+
+	"github.com/namsral/flag"
 
 	"github.com/RyotaNakaya/slack-emoji-reaction/lib"
 	"github.com/RyotaNakaya/slack-emoji-reaction/lib/repository"
