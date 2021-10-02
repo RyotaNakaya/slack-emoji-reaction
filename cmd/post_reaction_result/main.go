@@ -176,7 +176,12 @@ func selectReactedUser(s, e int) []ReactedUser {
 		if err != nil {
 			logger.Fatalf("error: %+v", err)
 		}
-		ru.UserName = u.DisplayName
+		// DisplayName 未設定の人は RealName を使用
+		if u.DisplayName != "" {
+			ru.UserName = u.DisplayName
+		} else {
+			ru.UserName = u.RealName
+		}
 
 		q = `select reaction_name, sum(reaction_count) reaction_count
 			from message_reactions
