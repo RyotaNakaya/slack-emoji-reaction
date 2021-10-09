@@ -8,6 +8,8 @@ import (
 	"github.com/slack-go/slack"
 )
 
+const retlyCount = 3
+
 // 指定されたチャンネル、期間のメッセージ一覧を返す
 func (s *Slack) FetchChannelMessages(ChannelID string, latest int, oldest int) ([]slack.Message, error) {
 	param := slack.GetConversationHistoryParameters{
@@ -26,8 +28,19 @@ func (s *Slack) FetchChannelMessages(ChannelID string, latest int, oldest int) (
 		// 1分あたり50まで
 		// rate limit に引っかからないようにゆっくり叩く
 		time.Sleep(time.Second * 1)
-		r, err := s.client.GetConversationHistory(&param)
-		if err != nil {
+
+		errCount := 0
+		var r *slack.GetConversationHistoryResponse
+		var err error
+		for errCount < retlyCount {
+			r, err = s.client.GetConversationHistory(&param)
+			if err != nil {
+				errCount++
+			} else {
+				break
+			}
+		}
+		if errCount == retlyCount {
 			return nil, fmt.Errorf("failed to GetConversationHistory: %w", err)
 		}
 
@@ -65,8 +78,19 @@ func (s *Slack) FetchChannelThreadMessages(ChannelID string, timestamps []string
 
 		// next cursor が返ってこなくなるまで再帰的にコール
 		for {
-			r, _, next, err := s.client.GetConversationReplies(&param)
-			if err != nil {
+			errCount := 0
+			var r []slack.Message
+			var err error
+			var next string
+			for errCount < retlyCount {
+				r, _, next, err = s.client.GetConversationReplies(&param)
+				if err != nil {
+					errCount++
+				} else {
+					break
+				}
+			}
+			if errCount == retlyCount {
 				return nil, fmt.Errorf("failed to GetConversationReplies: %w", err)
 			}
 
