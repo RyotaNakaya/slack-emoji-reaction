@@ -81,6 +81,25 @@ func main() {
 		cnt++
 	}
 
+	// omoro アワード
+	omoroLinks := aggregateReactionOmoroCountAward(*startTime, *endTime, 3)
+	header = `
+#####################################################
+:tada: :tada: *オモロアワード* :tada: :tada: :wwww: :kusa: :omoroi: :warota: :kusa_1:
+#####################################################
+	`
+	if err := slackClient.PostMessage(*targetChannelID, header); err != nil {
+		logger.Fatalf("error: %+v", err)
+	}
+	cnt = 1
+	for link, count := range omoroLinks {
+		text := fmt.Sprintf("%d位 (%d 個)\n %s", cnt, count, link)
+		if err := slackClient.PostMessage(*targetChannelID, text); err != nil {
+			logger.Fatalf("error: %+v", err)
+		}
+		cnt++
+	}
+
 	logger.Info("success!")
 }
 
@@ -163,6 +182,39 @@ func aggregateReactionKindCountAward(start, end, limit int) map[string]int {
 }
 
 type reactionKindCountAward struct {
+	ChannelID     string `db:"channel_id"`
+	MessageTsNano string `db:"message_ts_nano"`
+	Count         int    `db:"count"`
+}
+
+// omoro 系リアクションの数が多いメッセージのリンクを limit 分だけ返します
+func aggregateReactionOmoroCountAward(start, end, limit int) map[string]int {
+	q := `select channel_id, message_ts_nano, sum(reaction_count) count
+		from message_reactions
+		where message_ts between ? and ?
+		and reaction_name in("wwww", "kusa", "kusa_1", "omoroi", "warota")
+		group by channel_id, message_ts_nano
+		order by sum(reaction_count) desc
+		limit ?;`
+
+	var res []reactionOmoroCountAward
+	if err := repository.DB.Select(&res, q, start, end, limit); err != nil {
+		logger.Fatalf("error: %+v", err)
+	}
+
+	links := map[string]int{}
+	for _, v := range res {
+		link, err := slackClient.FetchMessage(v.ChannelID, v.MessageTsNano)
+		if err != nil {
+			logger.Fatalf("error: %+v", err)
+		}
+		links[link] = v.Count
+	}
+
+	return links
+}
+
+type reactionOmoroCountAward struct {
 	ChannelID     string `db:"channel_id"`
 	MessageTsNano string `db:"message_ts_nano"`
 	Count         int    `db:"count"`
