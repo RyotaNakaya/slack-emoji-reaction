@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/namsral/flag"
@@ -40,6 +41,27 @@ func main() {
 
 	logger.Info("start")
 
+	slackClient = lib.NewSlack(os.Getenv("SLACK_BOT_TOKEN"))
+
+	// リアクション数が多かったアワード
+	links := aggregateReactionCountAward(*startTime, *endTime, 3)
+	header := `
+#####################################################
+:tada: :tada: *リアクション数が多かったアワード* :tada: :tada:
+#####################################################
+	`
+	if err := slackClient.PostMessage(*targetChannelID, header); err != nil {
+		logger.Fatalf("error: %+v", err)
+	}
+	cnt := 1
+	for link, count := range links {
+		text := fmt.Sprintf("%d位 (%d 個)\n %s", cnt, count, link)
+		if err := slackClient.PostMessage(*targetChannelID, text); err != nil {
+			logger.Fatalf("error: %+v", err)
+		}
+		cnt++
+	}
+
 	logger.Info("success!")
 }
 
@@ -61,4 +83,36 @@ func init() {
 
 	// setup database
 	repository.DB = repository.PrepareDBConnection(*dbUser, *dbPass, *dbHost, *dbPort, *dbName, *dbMaxOpenConn, *dbMaxIdleConn, *dbConnLifetime)
+}
+
+// リアクション数が多いメッセージのリンクを limit 分だけ返します
+func aggregateReactionCountAward(start, end, limit int) map[string]int {
+	q := `select channel_id, message_ts_nano, sum(reaction_count) count
+		from message_reactions
+		where message_ts between ? and ?
+		group by channel_id, message_ts_nano
+		order by sum(reaction_count) desc
+		limit ?;`
+
+	var res []reactionCountAward
+	if err := repository.DB.Select(&res, q, start, end, limit); err != nil {
+		logger.Fatalf("error: %+v", err)
+	}
+
+	links := map[string]int{}
+	for _, v := range res {
+		link, err := slackClient.FetchMessage(v.ChannelID, v.MessageTsNano)
+		if err != nil {
+			logger.Fatalf("error: %+v", err)
+		}
+		links[link] = v.Count
+	}
+
+	return links
+}
+
+type reactionCountAward struct {
+	ChannelID     string `db:"channel_id"`
+	MessageTsNano string `db:"message_ts_nano"`
+	Count         int    `db:"count"`
 }
