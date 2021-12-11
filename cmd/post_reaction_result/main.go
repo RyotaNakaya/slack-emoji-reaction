@@ -60,13 +60,13 @@ func main() {
 	// リアクションをたくさんもらった人を集計
 	// TODO: #general や #kintai のような業務連絡系は除外してもいいかも
 	text += "\n\n:trophy: *リアクションをたくさんもらった人* :trophy: " + term
-	ru := selectReactedUser(*startTime, *endTime)
-	for _, v := range ru {
+	rus := selectReactedUser(*startTime, *endTime)
+	for _, v := range rus {
 		t := ""
 		for _, v2 := range v.ReactedUserReaction {
 			t += fmt.Sprintf(":%s: %d回、", v2.ReactionName, v2.ReactionCount)
 		}
-		text += fmt.Sprintf("\n%s さん=> %s...etc", v.UserName, t)
+		text += fmt.Sprintf("\n%s さん=>【計 %d個】 %s...etc", v.UserName, v.TotalCount, t)
 	}
 
 	// slack にポストする
@@ -79,7 +79,6 @@ func main() {
 	logger.Info("success post_reaction_result!")
 	et := time.Now()
 	logger.Infof("The call took %v to run.\n", et.Sub(st))
-
 }
 
 func init() {
@@ -183,6 +182,25 @@ func selectReactedUser(s, e int) []ReactedUser {
 			ru.UserName = u.RealName
 		}
 
+		// 獲得合計数を集計
+		q = `select sum(reaction_count) total_count
+			from message_reactions
+			where message_ts between ? and ?
+			and message_user_id = ?
+			group by message_user_id;`
+		rows, err := repository.DB.Queryx(q, s, e, v)
+		if err != nil {
+			logger.Fatalf("error: %+v", err)
+		}
+		for rows.Next() {
+			var total_count int
+			if err = rows.Scan(&total_count); err != nil {
+				logger.Fatalf("error: %+v", err)
+			}
+			ru.TotalCount = total_count
+		}
+
+		// 獲得数の多いリアクション集計
 		q = `select reaction_name, sum(reaction_count) reaction_count
 			from message_reactions
 			where message_ts between ? and ?
@@ -190,7 +208,7 @@ func selectReactedUser(s, e int) []ReactedUser {
 			group by reaction_name
 			order by reaction_count desc
 			limit 5;`
-		rows, err := repository.DB.Queryx(q, s, e, v)
+		rows, err = repository.DB.Queryx(q, s, e, v)
 		if err != nil {
 			logger.Fatalf("error: %+v", err)
 		}
@@ -213,6 +231,7 @@ func selectReactedUser(s, e int) []ReactedUser {
 
 type ReactedUser struct {
 	UserName            string
+	TotalCount          int
 	ReactedUserReaction []ReactedUserReaction
 }
 
