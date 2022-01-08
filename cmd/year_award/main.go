@@ -94,6 +94,23 @@ func main() {
 		}
 	}
 
+	// good story アワード
+	goodStoryRecords := aggregateReactionGoodStoryCountAward(*startTime, *endTime, 3)
+	header = `
+#####################################################
+:tada: :tada: *いい話アワード* :tada: :tada: :iihanasi: :iihanasi: :iihanasi:
+#####################################################
+	`
+	if err := slackClient.PostMessage(*targetChannelID, header); err != nil {
+		logger.Fatalf("error: %+v", err)
+	}
+	for k, record := range goodStoryRecords {
+		text := fmt.Sprintf("%d位 (%d 個)\n %s", k+1, record.count, record.link)
+		if err := slackClient.PostMessage(*targetChannelID, text); err != nil {
+			logger.Fatalf("error: %+v", err)
+		}
+	}
+
 	logger.Info("success!")
 }
 
@@ -226,6 +243,43 @@ func aggregateReactionOmoroCountAward(start, end, limit int) []record {
 }
 
 type reactionOmoroCountAward struct {
+	ChannelID     string `db:"channel_id"`
+	MessageTsNano string `db:"message_ts_nano"`
+	Count         int    `db:"count"`
+}
+
+// iihanashi リアクションの数が多いメッセージのリンクを limit 分だけ返します
+func aggregateReactionGoodStoryCountAward(start, end, limit int) []record {
+	q := `select channel_id, message_ts_nano, sum(reaction_count) count
+		from message_reactions
+		where message_ts between ? and ?
+		and reaction_name in("iihanasi")
+		group by channel_id, message_ts_nano
+		order by sum(reaction_count) desc
+		limit ?;`
+
+	var res []reactionGoodStoryCountAward
+	if err := repository.DB.Select(&res, q, start, end, limit); err != nil {
+		logger.Fatalf("error: %+v", err)
+	}
+
+	records := []record{}
+	for _, v := range res {
+		link, err := slackClient.FetchMessage(v.ChannelID, v.MessageTsNano)
+		if err != nil {
+			logger.Fatalf("error: %+v", err)
+		}
+		record := record{
+			link:  link,
+			count: v.Count,
+		}
+		records = append(records, record)
+	}
+
+	return records
+}
+
+type reactionGoodStoryCountAward struct {
 	ChannelID     string `db:"channel_id"`
 	MessageTsNano string `db:"message_ts_nano"`
 	Count         int    `db:"count"`
