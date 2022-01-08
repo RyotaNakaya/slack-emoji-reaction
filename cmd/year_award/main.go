@@ -44,7 +44,7 @@ func main() {
 	slackClient = lib.NewSlack(os.Getenv("SLACK_BOT_TOKEN"))
 
 	// リアクション数が多かったアワード
-	links := aggregateReactionCountAward(*startTime, *endTime, 3)
+	records := aggregateReactionCountAward(*startTime, *endTime, 3)
 	header := `
 #####################################################
 :tada: :tada: *リアクション数が多かったアワード* :tada: :tada:
@@ -53,17 +53,15 @@ func main() {
 	if err := slackClient.PostMessage(*targetChannelID, header); err != nil {
 		logger.Fatalf("error: %+v", err)
 	}
-	cnt := 1
-	for link, count := range links {
-		text := fmt.Sprintf("%d位 (%d 個)\n %s", cnt, count, link)
+	for k, record := range records {
+		text := fmt.Sprintf("%d位 (%d 個)\n %s", k+1, record.count, record.link)
 		if err := slackClient.PostMessage(*targetChannelID, text); err != nil {
 			logger.Fatalf("error: %+v", err)
 		}
-		cnt++
 	}
 
 	// リアクション種類数が多かったアワード
-	kindLinks := aggregateReactionKindCountAward(*startTime, *endTime, 3)
+	kindRecords := aggregateReactionKindCountAward(*startTime, *endTime, 3)
 	header = `
 #####################################################
 :tada: :tada: *リアクション種類数が多かったアワード* :tada: :tada:
@@ -72,17 +70,15 @@ func main() {
 	if err := slackClient.PostMessage(*targetChannelID, header); err != nil {
 		logger.Fatalf("error: %+v", err)
 	}
-	cnt = 1
-	for link, count := range kindLinks {
-		text := fmt.Sprintf("%d位 (%d 個)\n %s", cnt, count, link)
+	for k, record := range kindRecords {
+		text := fmt.Sprintf("%d位 (%d 個)\n %s", k+1, record.count, record.link)
 		if err := slackClient.PostMessage(*targetChannelID, text); err != nil {
 			logger.Fatalf("error: %+v", err)
 		}
-		cnt++
 	}
 
 	// omoro アワード
-	omoroLinks := aggregateReactionOmoroCountAward(*startTime, *endTime, 3)
+	omoroRecords := aggregateReactionOmoroCountAward(*startTime, *endTime, 3)
 	header = `
 #####################################################
 :tada: :tada: *オモロアワード* :tada: :tada: :wwww: :kusa: :omoroi: :warota: :kusa_1:
@@ -91,13 +87,11 @@ func main() {
 	if err := slackClient.PostMessage(*targetChannelID, header); err != nil {
 		logger.Fatalf("error: %+v", err)
 	}
-	cnt = 1
-	for link, count := range omoroLinks {
-		text := fmt.Sprintf("%d位 (%d 個)\n %s", cnt, count, link)
+	for k, record := range omoroRecords {
+		text := fmt.Sprintf("%d位 (%d 個)\n %s", k+1, record.count, record.link)
 		if err := slackClient.PostMessage(*targetChannelID, text); err != nil {
 			logger.Fatalf("error: %+v", err)
 		}
-		cnt++
 	}
 
 	logger.Info("success!")
@@ -123,8 +117,13 @@ func init() {
 	repository.DB = repository.PrepareDBConnection(*dbUser, *dbPass, *dbHost, *dbPort, *dbName, *dbMaxOpenConn, *dbMaxIdleConn, *dbConnLifetime)
 }
 
+type record struct {
+	link  string
+	count int
+}
+
 // リアクション数が多いメッセージのリンクを limit 分だけ返します
-func aggregateReactionCountAward(start, end, limit int) map[string]int {
+func aggregateReactionCountAward(start, end, limit int) []record {
 	q := `select channel_id, message_ts_nano, sum(reaction_count) count
 		from message_reactions
 		where message_ts between ? and ?
@@ -137,16 +136,20 @@ func aggregateReactionCountAward(start, end, limit int) map[string]int {
 		logger.Fatalf("error: %+v", err)
 	}
 
-	links := map[string]int{}
+	records := []record{}
 	for _, v := range res {
 		link, err := slackClient.FetchMessage(v.ChannelID, v.MessageTsNano)
 		if err != nil {
 			logger.Fatalf("error: %+v", err)
 		}
-		links[link] = v.Count
+		record := record{
+			link:  link,
+			count: v.Count,
+		}
+		records = append(records, record)
 	}
 
-	return links
+	return records
 }
 
 type reactionCountAward struct {
@@ -156,7 +159,7 @@ type reactionCountAward struct {
 }
 
 // リアクションの種類数が多いメッセージのリンクを limit 分だけ返します
-func aggregateReactionKindCountAward(start, end, limit int) map[string]int {
+func aggregateReactionKindCountAward(start, end, limit int) []record {
 	q := `select channel_id, message_ts_nano, count(message_ts_nano) count
 		from message_reactions
 		where message_ts between ? and ?
@@ -169,16 +172,20 @@ func aggregateReactionKindCountAward(start, end, limit int) map[string]int {
 		logger.Fatalf("error: %+v", err)
 	}
 
-	links := map[string]int{}
+	records := []record{}
 	for _, v := range res {
 		link, err := slackClient.FetchMessage(v.ChannelID, v.MessageTsNano)
 		if err != nil {
 			logger.Fatalf("error: %+v", err)
 		}
-		links[link] = v.Count
+		record := record{
+			link:  link,
+			count: v.Count,
+		}
+		records = append(records, record)
 	}
 
-	return links
+	return records
 }
 
 type reactionKindCountAward struct {
@@ -188,7 +195,7 @@ type reactionKindCountAward struct {
 }
 
 // omoro 系リアクションの数が多いメッセージのリンクを limit 分だけ返します
-func aggregateReactionOmoroCountAward(start, end, limit int) map[string]int {
+func aggregateReactionOmoroCountAward(start, end, limit int) []record {
 	q := `select channel_id, message_ts_nano, sum(reaction_count) count
 		from message_reactions
 		where message_ts between ? and ?
@@ -202,16 +209,20 @@ func aggregateReactionOmoroCountAward(start, end, limit int) map[string]int {
 		logger.Fatalf("error: %+v", err)
 	}
 
-	links := map[string]int{}
+	records := []record{}
 	for _, v := range res {
 		link, err := slackClient.FetchMessage(v.ChannelID, v.MessageTsNano)
 		if err != nil {
 			logger.Fatalf("error: %+v", err)
 		}
-		links[link] = v.Count
+		record := record{
+			link:  link,
+			count: v.Count,
+		}
+		records = append(records, record)
 	}
 
-	return links
+	return records
 }
 
 type reactionOmoroCountAward struct {
