@@ -1,20 +1,21 @@
 module github.com/RyotaNakaya/slack-emoji-reaction
 
-go 1.16
+go 1.22
 
 require (
-	github.com/ClickHouse/clickhouse-go v1.4.5 // indirect
-	github.com/denisenkom/go-mssqldb v0.10.0 // indirect
-	github.com/go-sql-driver/mysql v1.6.0 // indirect
-	github.com/jmoiron/sqlx v1.3.4 // indirect
-	github.com/joho/godotenv v1.3.0 // indirect
+	github.com/go-sql-driver/mysql v1.6.0
+	github.com/jmoiron/sqlx v1.3.4
+	github.com/joho/godotenv v1.3.0
+	github.com/namsral/flag v1.7.4-pre
+	github.com/slack-go/slack v0.9.0
+	go.uber.org/zap v1.16.0
+)
+
+require (
+	github.com/gorilla/websocket v1.4.2 // indirect
 	github.com/lib/pq v1.10.2 // indirect
 	github.com/mattn/go-sqlite3 v1.14.7 // indirect
-	github.com/namsral/flag v1.7.4-pre // indirect
 	github.com/pkg/errors v0.9.1 // indirect
-	github.com/pressly/goose v2.7.0+incompatible // indirect
-	github.com/slack-go/slack v0.9.0 // indirect
-	github.com/ziutek/mymysql v1.5.4 // indirect
-	go.uber.org/zap v1.16.0 // indirect
-	golang.org/x/crypto v0.0.0-20210513164829-c07d793c2f9a // indirect
+	go.uber.org/atomic v1.6.0 // indirect
+	go.uber.org/multierr v1.5.0 // indirect
 )
