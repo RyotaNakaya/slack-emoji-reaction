@@ -27,7 +27,7 @@ func (s *Slack) FetchChannelMessages(ChannelID string, latest int, oldest int) (
 	for {
 		// 1分あたり50まで
 		// rate limit に引っかからないようにゆっくり叩く
-		time.Sleep(time.Second * 1)
+		time.Sleep(time.Millisecond * 700)
 
 		errCount := 0
 		var r *slack.GetConversationHistoryResponse
@@ -65,7 +65,7 @@ func (s *Slack) FetchChannelThreadMessages(ChannelID string, timestamps []string
 	for _, ts := range timestamps {
 		// rate limit に引っかからないようにゆっくり叩く
 		// 1分あたり50まで
-		time.Sleep(time.Second * 1)
+		time.Sleep(time.Millisecond * 700)
 		param := slack.GetConversationRepliesParameters{
 			ChannelID: ChannelID,
 			Timestamp: ts,
