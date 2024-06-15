@@ -143,12 +143,13 @@ type messageReaction struct {
 // TODO: ハイパーやっつけ
 func selectReactedUser(s, e int) []ReactedUser {
 	res := []ReactedUser{}
-	// TODO: Slackbot を弾く
+	// Slackbot は弾く
 	q := `
 		select message_user_id, sum(reaction_count) reaction_count
 		from message_reactions
 		where message_ts between ? and ?
 		and message_user_id != ""
+		and message_user_id != "USLACKBOT"
 		group by message_user_id
 		order by reaction_count desc
 		limit ?;`
