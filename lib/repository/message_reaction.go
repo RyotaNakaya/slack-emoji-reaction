@@ -72,8 +72,10 @@ func buildUpsertQuery(m []*MessageReaction) string {
 
 	s := []string{}
 	for _, v := range m {
+		// シングルクオートをエスケープする
+		reactionName := strings.Replace(v.ReactionName, "'", "''", -1)
 		s = append(s, fmt.Sprintf("('%v', '%v', '%v', %v, '%v', %v, '%v', '%v', %v)",
-			v.ChannelID, v.MessageID, v.ReactionName, v.ReactionCount, v.MessageUserID, v.MessageTSNano, v.MessageTS, v.YYYYMM, v.CreatedAt))
+			v.ChannelID, v.MessageID, reactionName, v.ReactionCount, v.MessageUserID, v.MessageTSNano, v.MessageTS, v.YYYYMM, v.CreatedAt))
 	}
 
 	// duplicate entry の時は一応 reaction_count だけ更新する
