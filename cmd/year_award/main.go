@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/namsral/flag"
@@ -45,11 +46,11 @@ func main() {
 
 	// リアクション数が多かったアワード
 	records := aggregateReactionCountAward(*startTime, *endTime, 3)
-	header := `
-#####################################################
-:tada: :tada: *リアクション数が多かったアワード* :tada: :tada:
-#####################################################
-	`
+	header := strings.ReplaceAll(`
+		#####################################################
+		:tada: :tada: *リアクション数が多かったアワード* :tada: :tada:
+		#####################################################
+	`, "\t", "")
 	if err := slackClient.PostMessage(*targetChannelID, header); err != nil {
 		logger.Fatalf("error: %+v", err)
 	}
@@ -62,11 +63,11 @@ func main() {
 
 	// リアクション種類数が多かったアワード
 	kindRecords := aggregateReactionKindCountAward(*startTime, *endTime, 3)
-	header = `
-#####################################################
-:tada: :tada: *リアクション種類数が多かったアワード* :tada: :tada:
-#####################################################
-		`
+	header = strings.ReplaceAll(`
+		#####################################################
+		:tada: :tada: *リアクション種類数が多かったアワード* :tada: :tada:
+		#####################################################
+	`, "\t", "")
 	if err := slackClient.PostMessage(*targetChannelID, header); err != nil {
 		logger.Fatalf("error: %+v", err)
 	}
@@ -79,11 +80,11 @@ func main() {
 
 	// omoro アワード
 	omoroRecords := aggregateReactionOmoroCountAward(*startTime, *endTime, 3)
-	header = `
-#####################################################
-:tada: :tada: *オモロアワード* :tada: :tada: :wwww: :kusa: :omoroi: :warota: :kusa_1:
-#####################################################
-	`
+	header = strings.ReplaceAll(`
+		#####################################################
+		:tada: :tada: *オモロアワード* :tada: :tada: :wwww: :kusa: :omoroi: :warota: :kusa_1:
+		#####################################################
+	`, "\t", "")
 	if err := slackClient.PostMessage(*targetChannelID, header); err != nil {
 		logger.Fatalf("error: %+v", err)
 	}
@@ -96,11 +97,11 @@ func main() {
 
 	// good story アワード
 	goodStoryRecords := aggregateReactionGoodStoryCountAward(*startTime, *endTime, 3)
-	header = `
-#####################################################
-:tada: :tada: *いい話アワード* :tada: :tada: :iihanasi: :iihanasi: :iihanasi:
-#####################################################
-	`
+	header = strings.ReplaceAll(`
+		#####################################################
+		:tada: :tada: *いい話アワード* :tada: :tada: :iihanasi: :iihanasi: :iihanasi:
+		#####################################################
+	`, "\t", "")
 	if err := slackClient.PostMessage(*targetChannelID, header); err != nil {
 		logger.Fatalf("error: %+v", err)
 	}
