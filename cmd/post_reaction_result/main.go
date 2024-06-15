@@ -27,7 +27,7 @@ var (
 		"end unixtime of aggregate, this is exclusive")
 
 	dbUser         = flag.String("dbuser", "root", "mysql user name")
-	dbPass         = flag.String("dbpass", "", "mysql password")
+	dbPass         = flag.String("dbpass", "password", "mysql password")
 	dbHost         = flag.String("dbhost", "localhost", "mysql host name")
 	dbPort         = flag.String("dbport", "3306", "mysql port")
 	dbName         = flag.String("dbname", "slack_reaction_development", "mysql database name")
