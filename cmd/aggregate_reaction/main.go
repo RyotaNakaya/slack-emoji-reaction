@@ -123,6 +123,10 @@ func aggregateReaction(s *lib.Slack, ChannelID string, latest int, oldest int) {
 		}
 	}
 
+	// 重複削除
+	slices.Sort(ts)
+	ts = slices.Compact(ts)
+
 	// スレッドを取得する
 	logger.Infof("start get thread: %#v", ts)
 	messages, err = s.FetchChannelThreadMessages(ChannelID, ts, latest, oldest)
